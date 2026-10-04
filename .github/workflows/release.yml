@@ -26,17 +26,37 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "value=$version" >> "$GITHUB_OUTPUT"
       - name: Run tests
+        working-directory: apps/macos
         run: |
           swift test
           swift run RememberThisUnitTests
       - name: Build release archive
+        working-directory: apps/macos
         run: BUILD_NUMBER="${{ github.run_number }}" bash scripts/package-app.sh "${{ steps.version.outputs.value }}"
+      - name: Build iOS simulator release artifact
+        working-directory: apps/ios/RememberThisIOS
+        run: >-
+          xcodebuild build
+          -project RememberThisIOS.xcodeproj
+          -scheme RememberThisIOS
+          -sdk iphonesimulator
+          -configuration Release
+          -derivedDataPath build
+          CODE_SIGNING_ALLOWED=NO
+      - name: Package iOS simulator release artifact
+        working-directory: apps/ios/RememberThisIOS
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/Build/Products/Release-iphonesimulator/Remember This.app" \
+            "dist/Remember-This-iOS-simulator-${{ steps.version.outputs.value }}.zip"
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
-            "dist/Remember-This-${{ steps.version.outputs.value }}.zip" \
-            "dist/Remember-This-${{ steps.version.outputs.value }}.zip.sha256" \
+            "apps/macos/dist/Remember-This-${{ steps.version.outputs.value }}.zip" \
+            "apps/macos/dist/Remember-This-${{ steps.version.outputs.value }}.zip.sha256" \
+            "apps/ios/RememberThisIOS/dist/Remember-This-iOS-simulator-${{ steps.version.outputs.value }}.zip" \
             --title "Remember This ${{ steps.version.outputs.value }}" \
             --generate-notes

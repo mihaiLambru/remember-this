@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package rememberthis.protocol.v1;
+
+option java_multiple_files = true;
+option java_package = "app.rememberthis.protocol.v1";
+option swift_prefix = "RT";
+
+enum TransferKind {
+  TRANSFER_KIND_UNSPECIFIED = 0;
+  TRANSFER_KIND_TEXT = 1;
+  TRANSFER_KIND_IMAGE = 2;
+  TRANSFER_KIND_FILE = 3;
+}
+
+message TransferMetadata {
+  string id = 1;
+  TransferKind kind = 2;
+  string file_name = 3;
+  string mime_type = 4;
+  uint64 byte_count = 5;
+}
+
+message TransferReceipt {
+  string transfer_id = 1;
+  bool accepted = 2;
+  string rejection_reason = 3;
+}

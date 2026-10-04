@@ -10,20 +10,58 @@ permissions:
   contents: read
 
 jobs:
-  test-build-package:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Lint protocol schemas
+        working-directory: packages/protocol
+        run: buf lint
+  macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
       - name: Run tests
+        working-directory: apps/macos
         run: |
           swift test
           swift run RememberThisUnitTests
       - name: Build application archive
+        working-directory: apps/macos
         run: BUILD_NUMBER="${{ github.run_number }}" bash scripts/package-app.sh 0.0.0
       - name: Upload macOS archive
         uses: actions/upload-artifact@v7
         with:
           name: Remember-This-macOS
-          path: dist/
+          path: apps/macos/dist/
+          if-no-files-found: error
+          retention-days: 14
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build iOS simulator app
+        working-directory: apps/ios/RememberThisIOS
+        run: >-
+          xcodebuild build
+          -project RememberThisIOS.xcodeproj
+          -scheme RememberThisIOS
+          -sdk iphonesimulator
+          -configuration Release
+          -derivedDataPath build
+          CODE_SIGNING_ALLOWED=NO
+      - name: Package iOS simulator app
+        working-directory: apps/ios/RememberThisIOS
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/Build/Products/Release-iphonesimulator/Remember This.app" \
+            "dist/Remember-This-iOS-simulator.zip"
+      - name: Upload iOS simulator artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: Remember-This-iOS-simulator
+          path: apps/ios/RememberThisIOS/dist/Remember-This-iOS-simulator.zip
           if-no-files-found: error
           retention-days: 14

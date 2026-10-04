@@ -3,3 +3,7 @@ build/
 dist/
 .swiftpm/
 .DS_Store
+apps/ios/**/build/
+apps/ios/**/dist/
+*.xcuserstate
+xcuserdata/

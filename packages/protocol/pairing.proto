@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package rememberthis.protocol.v1;
+
+option java_multiple_files = true;
+option java_package = "app.rememberthis.protocol.v1";
+option swift_prefix = "RT";
+
+// Data encoded by a desktop app in a short-lived pairing QR code.
+message PairingInvitation {
+  uint32 protocol_major_version = 1;
+  bytes receiver_public_key = 2;
+  bytes pairing_secret = 3;
+  uint64 expires_at_unix_seconds = 4;
+}
+
+message PairingRequest {
+  bytes sender_public_key = 1;
+  bytes pairing_secret = 2;
+  string device_name = 3;
+}
+
+message PairingResult {
+  bytes receiver_public_key = 1;
+  string device_name = 2;
+}
