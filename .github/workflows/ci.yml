@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-build-package:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run tests
+        run: |
+          swift test
+          swift run RememberThisUnitTests
+      - name: Build application archive
+        run: BUILD_NUMBER="${{ github.run_number }}" bash scripts/package-app.sh 0.0.0
+      - name: Upload macOS archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: Remember-This-macOS
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
