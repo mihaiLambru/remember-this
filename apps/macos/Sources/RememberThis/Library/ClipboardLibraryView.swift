@@ -1,10 +1,12 @@
 import SwiftUI
+import AppKit
 import RememberThisCore
 
 struct ClipboardLibraryView: View {
     @ObservedObject var historyStore: ClipboardHistoryStore
     let shortcutError: String?
     let selectItem: (ClipboardItem) -> Void
+    let imageForAttachment: (ClipboardAttachment) -> NSImage?
     @State private var isShowingSettings = false
 
     var body: some View {
@@ -19,7 +21,7 @@ struct ClipboardLibraryView: View {
                 } else {
                     List {
                         ForEach(historyStore.items) { item in
-                            ClipboardRow(item: item)
+                            ClipboardRow(item: item, imageForAttachment: imageForAttachment)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     selectItem(item)
@@ -70,12 +72,14 @@ struct ClipboardLibraryView: View {
 
 private struct ClipboardRow: View {
     let item: ClipboardItem
+    let imageForAttachment: (ClipboardAttachment) -> NSImage?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(item.preview)
                 .font(.body)
                 .lineLimit(3)
+            AttachmentPreviewRow(attachments: item.attachments, imageForAttachment: imageForAttachment)
             HStack(spacing: 6) {
                 if let sourceApplication = item.sourceApplication {
                     Text(sourceApplication)
@@ -86,5 +90,36 @@ private struct ClipboardRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct AttachmentPreviewRow: View {
+    let attachments: [ClipboardAttachment]
+    let imageForAttachment: (ClipboardAttachment) -> NSImage?
+
+    var body: some View {
+        if !attachments.isEmpty {
+            HStack(spacing: 8) {
+                ForEach(attachments.prefix(5)) { attachment in
+                    if attachment.isImage, let image = imageForAttachment(attachment) {
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    } else {
+                        Label(attachment.filename, systemImage: "doc.fill")
+                            .font(.caption)
+                            .lineLimit(1)
+                            .frame(maxWidth: 150, alignment: .leading)
+                    }
+                }
+                if attachments.count > 5 {
+                    Text("+\(attachments.count - 5)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }

@@ -38,11 +38,15 @@ public final class ClipboardHistoryStore: ObservableObject {
     }
 
     public func capture(text: String, sourceApplication: String?) {
-        guard isCaptureEnabled else { return }
-        guard !text.isEmpty else { return }
+        capture(text: text, attachments: [], sourceApplication: sourceApplication)
+    }
 
-        items.removeAll { $0.text == text }
-        items.insert(ClipboardItem(text: text, sourceApplication: sourceApplication), at: 0)
+    public func capture(text: String, attachments: [ClipboardAttachment], sourceApplication: String?) {
+        guard isCaptureEnabled else { return }
+        guard !text.isEmpty || !attachments.isEmpty else { return }
+
+        items.removeAll { $0.text == text && $0.attachments == attachments }
+        items.insert(ClipboardItem(text: text, attachments: attachments, sourceApplication: sourceApplication), at: 0)
         trimAndPersist()
     }
 

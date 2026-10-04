@@ -88,6 +88,119 @@ runner.run("round trips exact text through disk persistence") {
     } catch { runner.expect(false) }
 }
 
+runner.run("captures text and attachments as one history item") {
+    let store = runner.makeStore()
+    let attachment = ClipboardAttachment(
+        filename: "plan.pdf",
+        contentType: "application/pdf",
+        byteCount: 128,
+        storage: .localCopy(relativePath: "plan.pdf")
+    )
+    store.capture(text: "Please review", attachments: [attachment], sourceApplication: "Mail")
+    runner.expect(store.items.count == 1)
+    runner.expect(store.items[0].text == "Please review")
+    runner.expect(store.items[0].attachments == [attachment])
+}
+
+runner.run("loads history saved before attachments were introduced") {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Clipboard Migration Tests \(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let historyURL = directory.appendingPathComponent("history.json")
+    struct LegacyClipboardItem: Codable {
+        let id: UUID
+        let text: String
+        let createdAt: Date
+        let sourceApplication: String?
+    }
+    do {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let legacyItem = LegacyClipboardItem(id: UUID(), text: "old entry", createdAt: .now, sourceApplication: "Notes")
+        try JSONEncoder().encode([legacyItem]).write(to: historyURL)
+        let loaded = try FileClipboardHistoryPersister(fileURL: historyURL).load()
+        runner.expect(loaded.count == 1)
+        runner.expect(loaded[0].text == "old entry")
+        runner.expect(loaded[0].attachments.isEmpty)
+    } catch {
+        runner.expect(false)
+    }
+}
+
+runner.run("stores image-only clipboard data locally and resolves it") {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Clipboard Attachment Tests \(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = ClipboardAttachmentStore(directoryURL: directory)
+    let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+    do {
+        let attachment = try store.captureImageData(imageData, filename: "Pasted Image.png")
+        runner.expect(attachment.isImage)
+        runner.expect({
+            guard let data = try? store.withResolvedURL(for: attachment, perform: { try Data(contentsOf: $0) }) else { return false }
+            return data == imageData
+        }())
+    } catch {
+        runner.expect(false)
+    }
+}
+
+runner.run("references source files when a bookmark is available") {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Clipboard Reference Tests \(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let sourceURL = directory.appendingPathComponent("source.txt")
+    let store = ClipboardAttachmentStore(directoryURL: directory.appendingPathComponent("cache"))
+    do {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data("source".utf8).write(to: sourceURL)
+        let attachment = try store.captureFile(at: sourceURL)
+        runner.expect(attachment.byteCount == 6)
+        runner.expect({
+            guard let data = try? store.withResolvedURL(for: attachment, perform: { try Data(contentsOf: $0) }) else { return false }
+            return data == Data("source".utf8)
+        }())
+    } catch {
+        runner.expect(false)
+    }
+}
+
+runner.run("copies a source file locally when a bookmark cannot be created") {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Clipboard Fallback Tests \(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let sourceURL = directory.appendingPathComponent("source.txt")
+    let store = ClipboardAttachmentStore(
+        directoryURL: directory.appendingPathComponent("cache"),
+        bookmarkDataProvider: { _ in throw URLError(.cannotCreateFile) }
+    )
+    do {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let expectedData = Data("fallback".utf8)
+        try expectedData.write(to: sourceURL)
+        let attachment = try store.captureFile(at: sourceURL)
+        guard case .localCopy = attachment.storage else {
+            runner.expect(false)
+            return
+        }
+        runner.expect({
+            guard let data = try? store.withResolvedURL(for: attachment, perform: { try Data(contentsOf: $0) }) else { return false }
+            return data == expectedData
+        }())
+    } catch {
+        runner.expect(false)
+    }
+}
+
+runner.run("rejects attachments over the configured maximum size") {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("Clipboard Size Tests \(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = ClipboardAttachmentStore(directoryURL: directory)
+    do {
+        _ = try store.captureImageData(Data(repeating: 1, count: 5), filename: "large.png", maximumBytes: 4)
+        runner.expect(false)
+    } catch let error as ClipboardAttachmentError {
+        runner.expect(error == .exceedsMaximumSize(filename: "large.png", maximumBytes: 4))
+    } catch {
+        runner.expect(false)
+    }
+}
+
 if runner.failures == 0 {
     print("All \(runner.testCount) unit tests passed.")
 } else {

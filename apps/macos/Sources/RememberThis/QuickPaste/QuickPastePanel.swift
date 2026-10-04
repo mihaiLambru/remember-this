@@ -7,7 +7,11 @@ final class QuickPastePanel: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
     private var previouslyActiveApplication: NSRunningApplication?
 
-    func show(items: [ClipboardItem], onSelect: @escaping (ClipboardItem) -> Void) {
+    func show(
+        items: [ClipboardItem],
+        imageForAttachment: @escaping (ClipboardAttachment) -> NSImage?,
+        onSelect: @escaping (ClipboardItem) -> Void
+    ) {
         if panel?.isVisible == true {
             dismissAndRestoreFocus()
             return
@@ -19,7 +23,7 @@ final class QuickPastePanel: NSObject, NSWindowDelegate {
             onSelect(item)
             self?.dismissAndRestoreFocus()
         }
-        let contentView = QuickPasteView(items: items, selection: selection, selectItem: choose)
+        let contentView = QuickPasteView(items: items, selection: selection, imageForAttachment: imageForAttachment, selectItem: choose)
         let hostingView = NSHostingView(rootView: contentView)
         let panel = makePanel(contentView: hostingView)
         self.panel = panel

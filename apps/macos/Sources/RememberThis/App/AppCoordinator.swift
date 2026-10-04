@@ -24,8 +24,11 @@ final class AppCoordinator: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
-        monitor = ClipboardMonitor(pasteboard: pasteboard) { [weak self] text, sourceApplication in
-            self?.historyStore.capture(text: text, sourceApplication: sourceApplication)
+        monitor = ClipboardMonitor(pasteboard: pasteboard) { [weak self] content, sourceApplication in
+            self?.historyStore.capture(text: content.text, attachments: content.attachments, sourceApplication: sourceApplication)
+            if let warning = content.warning {
+                self?.shortcutError = warning
+            }
         }
         monitor?.start()
         let status = shortcut.start { [weak self] in
@@ -38,14 +41,18 @@ final class AppCoordinator: ObservableObject {
 
     func showQuickPaste() {
         monitor?.checkForChange()
-        picker.show(items: historyStore.items) { [weak self] item in
+        picker.show(items: historyStore.items, imageForAttachment: pasteboard.previewImage) { [weak self] item in
             self?.makeMainItem(item)
         }
     }
 
     func makeMainItem(_ item: ClipboardItem) {
-        guard pasteboard.write(text: item.text) else { return }
+        guard pasteboard.write(item: item) else { return }
         monitor?.acknowledgeOwnWrite()
         historyStore.promote(item)
+    }
+
+    func previewImage(for attachment: ClipboardAttachment) -> NSImage? {
+        pasteboard.previewImage(for: attachment)
     }
 }

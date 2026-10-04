@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import RememberThisCore
 
 final class PickerSelection: ObservableObject {
@@ -8,6 +9,7 @@ final class PickerSelection: ObservableObject {
 struct QuickPasteView: View {
     let items: [ClipboardItem]
     @ObservedObject var selection: PickerSelection
+    let imageForAttachment: (ClipboardAttachment) -> NSImage?
     let selectItem: (ClipboardItem) -> Void
 
     var body: some View {
@@ -17,7 +19,7 @@ struct QuickPasteView: View {
                 Text("Clipboard History")
                     .font(.headline)
                 Spacer()
-                Text("Select an item, then press ⌘V")
+                Text("Select an item, then paste with ⌘V")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -27,7 +29,7 @@ struct QuickPasteView: View {
 
             if items.isEmpty {
                 ContentUnavailableView(
-                    "No clipboard text yet",
+                    "No clipboard items yet",
                     systemImage: "clipboard",
                     description: Text("Copy some text, then press ⌘⇧V.")
                 )
@@ -44,6 +46,7 @@ struct QuickPasteView: View {
                                     Text(item.preview)
                                         .lineLimit(2)
                                         .multilineTextAlignment(.leading)
+                                    AttachmentPreviewRow(attachments: item.attachments, imageForAttachment: imageForAttachment)
                                     if let sourceApplication = item.sourceApplication {
                                         Text(sourceApplication)
                                             .font(.caption)
@@ -66,5 +69,36 @@ struct QuickPasteView: View {
             }
         }
         .frame(width: 460, height: 360)
+    }
+}
+
+private struct AttachmentPreviewRow: View {
+    let attachments: [ClipboardAttachment]
+    let imageForAttachment: (ClipboardAttachment) -> NSImage?
+
+    var body: some View {
+        if !attachments.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(attachments.prefix(4)) { attachment in
+                    if attachment.isImage, let image = imageForAttachment(attachment) {
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 34, height: 34)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    } else {
+                        Label(attachment.filename, systemImage: "doc")
+                            .font(.caption)
+                            .lineLimit(1)
+                            .frame(maxWidth: 130, alignment: .leading)
+                    }
+                }
+                if attachments.count > 4 {
+                    Text("+\(attachments.count - 4)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }

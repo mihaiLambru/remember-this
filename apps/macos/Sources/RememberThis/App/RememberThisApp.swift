@@ -17,7 +17,8 @@ struct RememberThisApp: App {
             ClipboardLibraryView(
                 historyStore: historyStore,
                 shortcutError: coordinator.shortcutError,
-                selectItem: coordinator.makeMainItem
+                selectItem: coordinator.makeMainItem,
+                imageForAttachment: coordinator.previewImage
             )
             .task {
                 coordinator.start()

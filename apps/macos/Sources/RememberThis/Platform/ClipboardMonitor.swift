@@ -4,16 +4,16 @@ import Foundation
 @MainActor
 final class ClipboardMonitor {
     private let pasteboard: PasteboardWriting
-    private let onTextCopied: (String, String?) -> Void
+    private let onContentCopied: (PasteboardContent, String?) -> Void
     private var timer: Timer?
     private var lastChangeCount: Int
 
     init(
         pasteboard: PasteboardWriting,
-        onTextCopied: @escaping (String, String?) -> Void
+        onContentCopied: @escaping (PasteboardContent, String?) -> Void
     ) {
         self.pasteboard = pasteboard
-        self.onTextCopied = onTextCopied
+        self.onContentCopied = onContentCopied
         self.lastChangeCount = pasteboard.changeCount
     }
 
@@ -39,8 +39,8 @@ final class ClipboardMonitor {
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
 
-        guard let text = pasteboard.readPlainText() else { return }
+        guard let content = pasteboard.readContent() else { return }
         let sourceApplication = NSWorkspace.shared.frontmostApplication?.localizedName
-        onTextCopied(text, sourceApplication)
+        onContentCopied(content, sourceApplication)
     }
 }
