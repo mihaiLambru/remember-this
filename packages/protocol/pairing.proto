@@ -6,21 +6,56 @@ option java_multiple_files = true;
 option java_package = "app.rememberthis.protocol.v1";
 option swift_prefix = "RT";
 
-// Data encoded by a desktop app in a short-lived pairing QR code.
+// Deterministically serialized and embedded in a short-lived QR invitation URI.
 message PairingInvitation {
   uint32 protocol_major_version = 1;
-  bytes receiver_public_key = 2;
-  bytes pairing_secret = 3;
-  uint64 expires_at_unix_seconds = 4;
+  string receiver_id = 2; // Canonical UUID.
+  bytes receiver_signing_public_key = 3; // Ed25519, exactly 32 bytes.
+  bytes receiver_tls_spki_sha256 = 4; // exactly 32 bytes.
+  bytes pairing_secret = 5; // random, exactly 32 bytes, one-time.
+  uint64 expires_at_unix_seconds = 6;
 }
 
 message PairingRequest {
-  bytes sender_public_key = 1;
-  bytes pairing_secret = 2;
-  string device_name = 3;
+  bytes request_id = 1; // random, exactly 32 bytes.
+  string receiver_id = 2;
+  bytes pairing_secret = 3; // exactly 32 bytes.
+  string sender_id = 4; // Canonical UUID.
+  bytes sender_signing_public_key = 5; // Ed25519, exactly 32 bytes.
+  string device_name = 6; // 1..64 Unicode scalar values.
+  bytes nonce = 7; // random, exactly 32 bytes.
+  bytes signature = 8; // Ed25519 over deterministic fields 1..7.
 }
 
 message PairingResult {
-  bytes receiver_public_key = 1;
-  string device_name = 2;
+  bytes request_id = 1;
+  string pairing_id = 2; // Canonical UUID.
+  string receiver_id = 3;
+  string device_name = 4;
+  bytes receiver_signing_public_key = 5;
+  bytes receiver_tls_spki_sha256 = 6;
+  bytes nonce = 7;
+  bytes signature = 8; // Ed25519 over deterministic fields 1..7.
+}
+
+message SessionHello {
+  string pairing_id = 1;
+  bytes client_nonce = 2; // random, exactly 32 bytes.
+}
+
+message SessionChallenge {
+  string pairing_id = 1;
+  bytes client_nonce = 2;
+  bytes receiver_nonce = 3; // random, exactly 32 bytes.
+  bytes session_id = 4; // random, exactly 32 bytes.
+}
+
+message SessionAuthenticate {
+  bytes session_id = 1;
+  bytes signature = 2;
+}
+
+message SessionAccepted {
+  bytes session_id = 1;
+  bytes signature = 2;
 }

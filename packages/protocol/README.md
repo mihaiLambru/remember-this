@@ -15,7 +15,10 @@ version changes.
 - trusted local-network discovery
 - encrypted transfer of text, images, and files
 
-The schemas are Protobuf so Swift, Kotlin, Rust, and server tooling can generate
-types from one source of truth. Transport, encryption, and discovery details are
-specified in `discovery.md`; they will be finalized before the first pairing UI
-is implemented.
+The schemas are Protobuf so Swift, Kotlin, Rust, and test tooling can generate
+types from one source of truth. Version 1 uses Bonjour discovery plus pinned TLS
+WebSockets and has no server component.
+
+- [Discovery, transport, pairing, and transfer rules](discovery.md)
+- [Security and threat model](security.md)
+- [Implementation milestones, tests, and platform risks](implementation-plan.md)

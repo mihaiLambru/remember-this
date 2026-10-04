@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "pairing.proto";
+
 package rememberthis.protocol.v1;
 
 option java_multiple_files = true;
@@ -13,16 +15,51 @@ enum TransferKind {
   TRANSFER_KIND_FILE = 3;
 }
 
-message TransferMetadata {
-  string id = 1;
+message TransferOffer {
+  string transfer_id = 1; // Canonical UUID, unique per pairing for 24 hours.
   TransferKind kind = 2;
-  string file_name = 3;
+  string file_name = 3; // Required for IMAGE and FILE; basename only.
   string mime_type = 4;
-  uint64 byte_count = 5;
+  uint64 byte_count = 5; // Must not exceed 104857600.
+  bytes sha256 = 6; // exactly 32 bytes; required for IMAGE and FILE.
+}
+
+message TransferDecision {
+  string transfer_id = 1;
+  bool accepted = 2;
+  string rejection_reason = 3; // Stable machine-readable reason when rejected.
+}
+
+message TransferPayload {
+  string transfer_id = 1;
+  bytes utf8_text = 2; // Used only for TEXT.
+}
+
+message TransferComplete {
+  string transfer_id = 1;
+  uint64 byte_count = 2;
+  bytes sha256 = 3;
 }
 
 message TransferReceipt {
   string transfer_id = 1;
   bool accepted = 2;
   string rejection_reason = 3;
+}
+
+// Exactly one of the known messages is present in a WebSocket binary frame.
+message Envelope {
+  oneof message {
+    PairingRequest pairing_request = 1;
+    PairingResult pairing_result = 2;
+    SessionHello session_hello = 3;
+    SessionChallenge session_challenge = 4;
+    SessionAuthenticate session_authenticate = 5;
+    SessionAccepted session_accepted = 6;
+    TransferOffer transfer_offer = 7;
+    TransferDecision transfer_decision = 8;
+    TransferPayload transfer_payload = 9;
+    TransferComplete transfer_complete = 10;
+    TransferReceipt transfer_receipt = 11;
+  }
 }
