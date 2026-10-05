@@ -11,6 +11,7 @@ final class AppCoordinator: ObservableObject {
     private var monitor: ClipboardMonitor?
     private var hasStarted = false
     @Published private(set) var shortcutError: String?
+    let pairingInvitationManager = PairingInvitationManager()
 
     init(historyStore: ClipboardHistoryStore) {
         self.historyStore = historyStore

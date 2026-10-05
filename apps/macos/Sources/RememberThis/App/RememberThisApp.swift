@@ -18,7 +18,8 @@ struct RememberThisApp: App {
                 historyStore: historyStore,
                 shortcutError: coordinator.shortcutError,
                 selectItem: coordinator.makeMainItem,
-                imageForAttachment: coordinator.previewImage
+                imageForAttachment: coordinator.previewImage,
+                pairingInvitationManager: coordinator.pairingInvitationManager
             )
             .task {
                 coordinator.start()

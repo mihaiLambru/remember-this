@@ -7,6 +7,7 @@ struct ClipboardLibraryView: View {
     let shortcutError: String?
     let selectItem: (ClipboardItem) -> Void
     let imageForAttachment: (ClipboardAttachment) -> NSImage?
+    let pairingInvitationManager: PairingInvitationManager
     @State private var isShowingSettings = false
 
     var body: some View {
@@ -54,7 +55,7 @@ struct ClipboardLibraryView: View {
             }
         }
         .sheet(isPresented: $isShowingSettings) {
-            SettingsView(historyStore: historyStore)
+            SettingsView(historyStore: historyStore, pairingInvitationManager: pairingInvitationManager)
         }
         .safeAreaInset(edge: .bottom) {
             VStack {

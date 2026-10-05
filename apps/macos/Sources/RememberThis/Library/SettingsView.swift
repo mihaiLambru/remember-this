@@ -3,7 +3,9 @@ import RememberThisCore
 
 struct SettingsView: View {
     @ObservedObject var historyStore: ClipboardHistoryStore
+    @ObservedObject var pairingInvitationManager: PairingInvitationManager
     @Environment(\.dismiss) private var dismiss
+    @State private var isShowingPairingQRCode = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -34,6 +36,19 @@ struct SettingsView: View {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Pairing")
+                    .font(.headline)
+                Text("Pair an iPhone on your local network to share content with this Mac.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Pair iPhone…") {
+                    isShowingPairingQRCode = true
+                }
+            }
+
+            Divider()
+
             Button("Clear Clipboard History", role: .destructive) {
                 historyStore.clear()
             }
@@ -41,6 +56,9 @@ struct SettingsView: View {
             Spacer()
         }
         .padding(24)
-        .frame(width: 420, height: 330)
+        .frame(width: 420, height: 430)
+        .sheet(isPresented: $isShowingPairingQRCode) {
+            PairingQRCodeView(manager: pairingInvitationManager)
+        }
     }
 }
